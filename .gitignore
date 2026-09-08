@@ -1,0 +1,4 @@
+# Source exports from the Deportation Data Project explorer. Large, and the
+# committed data.json is the only thing the page needs. Re-pull when refreshing
+# (see README.md), run build.py, commit data.json.
+*.xlsx

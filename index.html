@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where ICE arrests the people held in Nebraska's immigration jails</title>
+<meta name="description" content="Arrest locations, nationalities and enforcement methods behind detention stays that pass through Nebraska's seven ICE detention facilities, from Deportation Data Project records.">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  :root {
+    --bg: #ffffff; --panel: #f6f7f9; --border: #d9dde3; --text: #14181d;
+    --muted: #626b76; --accent: #d00000; --accent-soft: #fdecec;
+    --bar: #d00000; --bar-2: #6b7480; --row-alt: #fafbfc;
+    --shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171a; --panel: #1c2025; --border: #2c323a; --text: #e6e9ed;
+      --muted: #949dab; --accent: #ff6b6b; --accent-soft: #2a1c1d;
+      --bar: #ff6b6b; --bar-2: #7f8896; --row-alt: #181c20;
+      --shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 20px 64px; }
+
+  header { padding: 26px 20px 18px; border-bottom: 1px solid var(--border); }
+  header .wrap { padding-bottom: 0; }
+  h1 { margin: 0 0 8px; font-size: 25px; line-height: 1.2; letter-spacing: -.01em; }
+  .standfirst { color: var(--text); max-width: 74ch; margin: 0 0 6px; }
+  .standfirst.small { color: var(--muted); font-size: 13.5px; max-width: 78ch; }
+  .updated {
+    margin-top: 12px; color: var(--muted); font-size: 11px;
+    text-transform: uppercase; letter-spacing: .06em; font-weight: 600;
+  }
+  .updated b { color: var(--text); text-transform: none; letter-spacing: 0; }
+
+  section { margin-top: 40px; }
+  h2 { font-size: 17px; margin: 0 0 4px; letter-spacing: -.01em; }
+  .note { color: var(--muted); font-size: 13px; margin: 0 0 14px; max-width: 74ch; }
+
+  .tiles {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 22px;
+  }
+  .tile {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 13px 14px;
+  }
+  .tile .n { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .tile .l { color: var(--muted); font-size: 12px; margin-top: 3px; line-height: 1.35; }
+  @media (max-width: 720px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+
+  #map {
+    height: 520px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--panel);
+  }
+  .leaflet-container { font: inherit; background: var(--panel); }
+  .leaflet-tooltip.route-tip { font: inherit; font-size: 12px; }
+  .viewtabs { display: flex; gap: 6px; margin: 0 0 12px; flex-wrap: wrap; }
+  .viewtabs button {
+    font: inherit; font-size: 13px; padding: 6px 12px; cursor: pointer;
+    border: 1px solid var(--border); border-radius: 999px;
+    background: var(--bg); color: var(--muted); font-weight: 600;
+  }
+  .viewtabs button[aria-selected="true"] {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+  .legend {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; font-size: 12px; line-height: 1.6; color: var(--muted);
+    box-shadow: var(--shadow); max-width: 230px;
+  }
+  .legend b { color: var(--text); }
+  .legend .dot {
+    display: inline-block; border-radius: 50%; background: var(--accent);
+    opacity: .6; border: 1px solid var(--accent); vertical-align: middle; margin-right: 4px;
+  }
+  .legend .ln {
+    display: inline-block; width: 18px; height: 0; vertical-align: middle;
+    border-top: 3px solid var(--accent); opacity: .7; margin-right: 4px;
+  }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; gap: 30px; } }
+
+  .bars { display: flex; flex-direction: column; gap: 7px; }
+  .bar-row { display: grid; grid-template-columns: 132px 1fr 52px; align-items: center; gap: 10px; }
+  .bar-row .k { font-size: 13px; text-align: right; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-row .track { background: var(--row-alt); border-radius: 3px; height: 18px; overflow: hidden; }
+  .bar-row .fill { height: 100%; background: var(--bar); border-radius: 3px 0 0 3px; min-width: 2px; }
+  .bar-row .fill.alt { background: var(--bar-2); }
+  .bar-row .v { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  @media (max-width: 480px) { .bar-row { grid-template-columns: 100px 1fr 44px; } }
+
+  figure.chart { margin: 0; }
+  figure.chart svg { width: 100%; height: auto; display: block; }
+  .axis { fill: var(--muted); font-size: 10px; }
+  .gridline { stroke: var(--border); stroke-width: 1; }
+  .area { fill: var(--accent-soft); }
+  .line { fill: none; stroke: var(--accent); stroke-width: 1.75; }
+
+  .method-explain { font-size: 13px; color: var(--muted); margin-top: 12px; max-width: 74ch; }
+  .method-explain b { color: var(--text); font-weight: 600; }
+
+  .method-box {
+    margin-top: 26px; padding: 14px 16px; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--panel); font-size: 13px; line-height: 1.55;
+  }
+  .method-box h2 { font-size: 14px; }
+  .method-box ul { margin: 8px 0 0; padding-left: 18px; }
+  .method-box li { margin-bottom: 5px; }
+  .method-box code { font-size: 12px; background: var(--row-alt); padding: 1px 4px; border-radius: 3px; }
+
+  footer { margin-top: 44px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12.5px; }
+  footer a { font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Where ICE arrests the people held in Nebraska's immigration jails</h1>
+    <p class="standfirst">
+      Seven county jails and hold rooms in Nebraska take people into federal immigration
+      detention. This page traces the route &mdash; where Immigration and Customs Enforcement
+      recorded the arrest, the Nebraska facility that held the person, the out-of-state
+      facility they were transferred to, and the country they were removed to &mdash; for
+      every detention stay since late 2022 that touched one of the seven facilities.
+    </p>
+    <p class="standfirst small">
+      Each record is one continuous stay in detention, matched to the arrest that began it.
+      A stay can pass through more than one jail; it is counted here if any part of it was
+      in a Nebraska facility. The arrest is often recorded at a local jail or state prison,
+      not on the street &mdash; see <a href="#method">how the arrests happen</a>.
+    </p>
+    <p class="updated">Data through <b id="u-through">&hellip;</b> &nbsp;&middot;&nbsp; built <b id="u-built">&hellip;</b></p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="tiles" id="tiles"></div>
+
+  <section id="map-section">
+    <h2>The route into and out of Nebraska detention</h2>
+    <div class="viewtabs" id="viewtabs" role="tablist">
+      <button role="tab" data-view="arrivals" aria-selected="true">Arrivals</button>
+      <button role="tab" data-view="transfers" aria-selected="false">Transfers</button>
+      <button role="tab" data-view="removals" aria-selected="false">Removals</button>
+    </div>
+    <p class="note" id="map-note">&hellip;</p>
+    <div id="map"></div>
+  </section>
+
+  <section>
+    <div class="cols">
+      <div>
+        <h2>Countries of citizenship</h2>
+        <p class="note">Where the people held in these facilities hold citizenship.</p>
+        <div class="bars" id="bars-citizenship"></div>
+      </div>
+      <div>
+        <h2>Criminal history at book-in</h2>
+        <p class="note">ICE's own classification when the person was booked into detention.</p>
+        <div class="bars" id="bars-criminality"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="method">
+    <h2>How the arrests happen</h2>
+    <p class="note">
+      ICE's &ldquo;apprehension method,&rdquo; simplified. Most arrests here are custodial &mdash;
+      ICE takes custody of someone already booked into a local jail or state prison.
+    </p>
+    <div class="bars" id="bars-method"></div>
+    <p class="method-explain" id="method-explain"></p>
+  </section>
+
+  <section>
+    <h2>Arrests over time</h2>
+    <p class="note">Monthly, by arrest date. A trailing partial month is dropped.</p>
+    <figure class="chart"><div id="trend"></div></figure>
+  </section>
+
+  <section>
+    <div class="cols">
+      <div>
+        <h2>Where people are moved next</h2>
+        <p class="note">State of the <em>last</em> facility in each stay. Nebraska is largely a
+          feeder into ICE's removal pipeline in the Gulf South.</p>
+        <div class="bars" id="bars-transfer"></div>
+      </div>
+      <div>
+        <h2>Countries people were removed to</h2>
+        <p class="note">For the stays that ended in removal from the United States.</p>
+        <div class="bars" id="bars-removal"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="method-box" id="methodology">
+    <h2>About the data</h2>
+    <p>
+      Source: the <a href="https://deportationdata.org/" target="_blank" rel="noopener">Deportation
+      Data Project</a>'s processed <b>&ldquo;Arrests with detentions&rdquo;</b> dataset (ICE records
+      obtained under FOIA; release of 21&nbsp;August&nbsp;2026). Filtered to detention stays whose
+      facility list includes any of the seven Nebraska codes
+      <span id="fac-codes"></span>, then aggregated. No individual records are published here.
+    </p>
+    <ul>
+      <li><b>Arrest location is free text</b> typed by ICE staff, with inconsistent spelling.
+        City names were normalized and geocoded to a town centroid; <span id="cov-line"></span></li>
+      <li><b>An arrest is where ICE took custody, not where the person lives.</b> Most here are
+        custodial &mdash; recorded at the jail or state prison already holding the person.</li>
+      <li><b>The Nebraska node</b> is the first of the seven facilities a stay reaches: the Omaha
+        ERO hold room unless a county-jail bed comes first in the record. Jail-to-jail hops
+        inside the state are not drawn.</li>
+      <li><b>Transfers and removals</b> use the last facility recorded for the stay. A stay is
+        included if <em>any</em> stint touched a Nebraska facility, so some arrests and exit
+        facilities sit in neighbouring states. Route legs with fewer than three stays are omitted.</li>
+      <li>Counts are detention stays (<span id="ppl-line"></span>), not unique people &mdash; a few
+        people appear twice after a release and re-arrest.</li>
+      <li>Rebuild: re-pull the filtered export from the Deportation Data Project explorer and run
+        <code>python3 build.py &lt;file&gt;.xlsx</code>.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Part of <a href="/">diepjustin.github.io</a>. A reporting data project &mdash; not affiliated with ICE or the Deportation Data Project.
+  </footer>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+const fmt = n => n.toLocaleString('en-US');
+
+function bars(elId, rows, keyField, {alt=false} = {}) {
+  const el = document.getElementById(elId);
+  const top = Math.max(...rows.map(r => r.n), 1);
+  el.innerHTML = rows.map(r => `
+    <div class="bar-row">
+      <span class="k" title="${r[keyField]}">${r[keyField]}</span>
+      <span class="track"><span class="fill${alt ? ' alt' : ''}" style="width:${(r.n/top*100).toFixed(1)}%"></span></span>
+      <span class="v">${fmt(r.n)}</span>
+    </div>`).join('');
+}
+
+function trendChart(monthly) {
+  const m = monthly.slice();
+  if (m.length > 1 && m[m.length-1].n < m[m.length-2].n * 0.5) m.pop();
+  const W = 920, H = 220, padL = 34, padR = 8, padT = 10, padB = 22;
+  const max = Math.max(...m.map(d => d.n), 1);
+  const x = i => padL + i * (W - padL - padR) / (m.length - 1);
+  const y = v => padT + (1 - v / max) * (H - padT - padB);
+  const pts = m.map((d, i) => [x(i), y(d.n)]);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const area = `M${padL} ${y(0)} ` + pts.map(p => `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ') + ` L${x(m.length-1)} ${y(0)} Z`;
+  const yticks = [0, Math.round(max/2), max];
+  const yg = yticks.map(v => `<line class="gridline" x1="${padL}" y1="${y(v)}" x2="${W-padR}" y2="${y(v)}"/><text class="axis" x="${padL-5}" y="${y(v)+3}" text-anchor="end">${v}</text>`).join('');
+  const xl = m.map((d, i) => d.month.endsWith('-01') ? `<text class="axis" x="${x(i)}" y="${H-6}" text-anchor="middle">${d.month.slice(0,4)}</text>` : '').join('');
+  document.getElementById('trend').innerHTML =
+    `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Monthly arrests over time">
+       ${yg}<path class="area" d="${area}"/><path class="line" d="${line}"/>${xl}
+     </svg>`;
+}
+
+function methodExplain(detail, method) {
+  const get = l => (detail.find(d => d.label === l) || {n:0}).n;
+  const cap = get('CAP Local Incarceration') + get('CAP State Incarceration') + get('CAP Federal Incarceration');
+  const cust = (method.find(m => m.label === 'Custodial Arrest') || {n:0}).n;
+  document.getElementById('method-explain').innerHTML =
+    `Of the <b>${fmt(cust)}</b> custodial arrests, <b>${fmt(cap)}</b> came through the Criminal
+     Alien Program &mdash; ICE lodged a detainer on someone already booked into a jail or prison,
+     and took custody on release.`;
+}
+
+fetch('data.json').then(r => r.json()).then(d => {
+  const meta = d.meta;
+  document.getElementById('u-through').textContent =
+    new Date(meta.arrest_date_max + 'T00:00').toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
+  document.getElementById('u-built').textContent =
+    new Date(meta.generated + 'T00:00').toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
+
+  const crimNo = (d.criminality.find(c => c.label.startsWith('No criminal')) || {n:0}).n;
+  const tiles = [
+    [fmt(meta.n_stays), 'detention stays through a Nebraska facility'],
+    [fmt(d.citizenship[0].n + d.citizenship[1].n), 'of those stays are Mexican or Guatemalan citizens'],
+    [(100*crimNo/meta.n_stays).toFixed(0) + '%', 'had no criminal charge or conviction at book-in'],
+    [fmt((d.transfer_out_state.find(s=>s.state==='LA')||{n:0}).n), 'stays that ended in a Louisiana ICE facility'],
+  ];
+  document.getElementById('tiles').innerHTML = tiles.map(t =>
+    `<div class="tile"><div class="n">${t[0]}</div><div class="l">${t[1]}</div></div>`).join('');
+
+  bars('bars-citizenship', d.citizenship, 'country');
+  bars('bars-criminality', d.criminality, 'label');
+  bars('bars-method', d.method, 'label');
+  bars('bars-transfer', d.transfer_out_state, 'state', {alt:true});
+  bars('bars-removal', d.removal_country, 'country', {alt:true});
+  methodExplain(d.method_detail, d.method);
+  trendChart(d.monthly);
+
+  document.getElementById('fac-codes').textContent = Object.keys(meta.facilities).join(', ');
+  document.getElementById('cov-line').textContent =
+    `${meta.pct_on_map}% of stays land on the map, ${(100 - meta.pct_city_known).toFixed(1)}% had no city at all.`;
+  document.getElementById('ppl-line').textContent =
+    `${fmt(meta.n_stays)} stays, about ${fmt(meta.n_people)} people`;
+
+  // ---------------- route / flow map ----------------
+  const css = v => getComputedStyle(document.body).getPropertyValue(v).trim();
+  const IN = css('--accent') || '#d00000';
+  const OUT = (matchMedia('(prefers-color-scheme: dark)').matches) ? '#6aa8ff' : '#1c5fd0';
+
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const map = L.map('map', {scrollWheelZoom:false, worldCopyJump:true}).setView([42, -96], 6);
+  L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`, {
+    attribution: '&copy; OpenStreetMap, &copy; CARTO', maxZoom: 10, subdomains: 'abcd'
+  }).addTo(map);
+  // The map can be created while its container is hidden or unsized (e.g. the
+  // section is off-screen); re-fit whenever the box actually gets a size.
+  if (window.ResizeObserver) {
+    let last = 0;
+    new ResizeObserver(() => {
+      map.invalidateSize();
+      const w = map.getSize().x;
+      if (w > 50 && Math.abs(w - last) > 20) { last = w; if (current) applyView(current); }
+    }).observe(document.getElementById('map'));
+  }
+
+  // A curved great-circle-ish arc between two [lat,lon] points.
+  function arc(a, b, bend) {
+    const lat1 = a[0]*Math.PI/180, lat2 = b[0]*Math.PI/180;
+    const dLon = (b[1]-a[1])*Math.PI/180;
+    const bx = Math.cos(lat2)*Math.cos(dLon), by = Math.cos(lat2)*Math.sin(dLon);
+    const mid = [
+      Math.atan2(Math.sin(lat1)+Math.sin(lat2), Math.sqrt((Math.cos(lat1)+bx)**2 + by**2)) * 180/Math.PI,
+      (a[1] + Math.atan2(by, Math.cos(lat1)+bx) * 180/Math.PI)
+    ];
+    // lift the control point perpendicular to the chord
+    const dx = b[0]-a[0], dy = b[1]-a[1];
+    const ctrl = [mid[0] - dy*bend, mid[1] + dx*bend];
+    const pts = [];
+    for (let i = 0; i <= 24; i++) {
+      const t = i/24, u = 1-t;
+      pts.push([
+        u*u*a[0] + 2*u*t*ctrl[0] + t*t*b[0],
+        u*u*a[1] + 2*u*t*ctrl[1] + t*t*b[1]
+      ]);
+    }
+    return pts;
+  }
+
+  function drawArcs(group, list, color, bend) {
+    const max = Math.max(...list.map(r => r.n), 1);
+    list.slice().sort((p,q) => p.n - q.n).forEach(r => {
+      const w = 1.2 + 5 * Math.sqrt(r.n / max);
+      L.polyline(arc(r.from, r.to, bend), {
+        color, weight: w, opacity: 0.5, lineCap: 'round'
+      }).bindTooltip(`${r.from_label} &rarr; ${r.to_label}<br><b>${fmt(r.n)}</b> stays`,
+        {sticky: true, className: 'route-tip'}).addTo(group);
+    });
+  }
+  function drawNodes(group, list, {color, key, sub, minR = 3, label = false}) {
+    const max = Math.max(...list.map(r => r.n), 1);
+    list.forEach(r => {
+      const rad = minR + 9 * Math.sqrt(r.n / max);
+      const m = L.circleMarker([r.lat, r.lon], {
+        radius: rad, color, weight: 1, fillColor: color, fillOpacity: 0.85
+      }).addTo(group);
+      const big = label && r.n / max > 0.16;
+      if (big) {
+        m.bindTooltip(`${r[key]} &middot; ${fmt(r.n)}`,
+          {permanent: true, direction: 'right', className: 'route-tip', offset: [5, 0]});
+      } else {
+        m.bindTooltip(`<b>${r[key]}</b><br>${fmt(r.n)} ${sub}`, {direction: 'top', className: 'route-tip'});
+      }
+    });
+  }
+
+  const ne = d.nodes.ne_facilities;
+  const gArr = L.layerGroup(), gTr = L.layerGroup(), gRm = L.layerGroup();
+
+  drawArcs(gArr, d.routes.arrivals, IN, 0.14);
+  drawNodes(gArr, d.nodes.ne_facilities, {color: IN, key: 'label', sub: 'stays entered here', minR: 4, label: true});
+
+  drawArcs(gTr, d.routes.transfers, OUT, 0.16);
+  drawNodes(gTr, d.nodes.ne_facilities, {color: IN, key: 'label', sub: 'stays', minR: 3});
+  drawNodes(gTr, d.nodes.exit_facilities, {color: OUT, key: 'label', sub: 'transferred here', minR: 4, label: true});
+
+  drawArcs(gRm, d.routes.removals, OUT, 0.20);
+  drawNodes(gRm, d.nodes.exit_facilities, {color: OUT, key: 'label', sub: 'stays', minR: 2});
+  drawNodes(gRm, d.nodes.countries, {color: OUT, key: 'country', sub: 'removed here', minR: 4, label: true});
+
+  const legend = L.control({position: 'bottomright'});
+  legend.onAdd = () => L.DomUtil.create('div', 'legend');
+  legend.addTo(map);
+  const legendEl = legend.getContainer();
+
+  const VIEWS = {
+    arrivals: {
+      group: gArr, bend: 0.14,
+      view: [[[39.3, -105], [46.2, -89]]],
+      note: `Arcs run from the town where ICE recorded the arrest to the first Nebraska ` +
+            `facility of the stay. Width is the number of stays. ${meta.pct_routed_in}% of ` +
+            `stays have a usable arrest town; the rest had a blank or unrecognised city.`,
+      legend: `<b>Arrest &rarr; Nebraska facility</b><br>` +
+              `<span class="ln"></span> thicker = more stays<br>` +
+              `<span class="dot" style="width:8px;height:8px"></span> arrest hub &nbsp; ` +
+              `<span class="dot" style="width:16px;height:16px"></span> Nebraska facility`
+    },
+    transfers: {
+      group: gTr, bend: 0.16, view: null,
+      note: `From the Nebraska facility to the out-of-state ICE facility where the stay ended ` +
+            `(when it did not end in Nebraska). ${meta.pct_routed_out}% of stays were ` +
+            `transferred out of state &mdash; overwhelmingly to Louisiana and Texas.`,
+      legend: `<b>Nebraska &rarr; exit facility</b><br>` +
+              `<span class="dot" style="width:10px;height:10px;background:${IN};border-color:${IN}"></span> Nebraska &nbsp; ` +
+              `<span class="dot" style="width:14px;height:14px"></span> exit facility`
+    },
+    removals: {
+      group: gRm, bend: 0.20, view: null,
+      note: `From the last U.S. facility to the country the person was removed to, for the ` +
+            `${fmt(meta.n_removed)} stays (${(100*meta.n_removed/meta.n_stays).toFixed(0)}%) ` +
+            `that ended in removal.`,
+      legend: `<b>Exit facility &rarr; country of removal</b><br>` +
+              `<span class="dot" style="width:8px;height:8px"></span> U.S. facility &nbsp; ` +
+              `<span class="dot" style="width:16px;height:16px"></span> country`
+    }
+  };
+
+  let current = null;
+  function applyView(v) {
+    map.invalidateSize();
+    if (map.getSize().x < 50) return;          // container not laid out yet
+    if (v.view) {
+      map.fitBounds(v.view[0], {padding: [10, 10]});
+    } else {
+      const b = L.latLngBounds();
+      v.group.eachLayer(l => { if (l.getLatLngs) b.extend(l.getBounds()); });
+      if (b.isValid()) map.fitBounds(b, {padding: [26, 26]});
+    }
+  }
+  function show(name) {
+    const v = VIEWS[name];
+    if (current) map.removeLayer(current.group);
+    current = v;
+    v.group.addTo(map);
+    document.getElementById('map-note').innerHTML = v.note;
+    legendEl.innerHTML = v.legend;
+    document.querySelectorAll('#viewtabs button').forEach(b =>
+      b.setAttribute('aria-selected', b.dataset.view === name));
+    applyView(v);
+  }
+  document.querySelectorAll('#viewtabs button').forEach(b =>
+    b.addEventListener('click', () => show(b.dataset.view)));
+  show('arrivals');
+  requestAnimationFrame(() => applyView(current));
+  window.addEventListener('load', () => applyView(current));
+}).catch(e => {
+  document.getElementById('map-note').textContent = 'Could not load data.json — ' + e;
+});
+</script>
+</body>
+</html>
