@@ -1,0 +1,6 @@
+pandas==2.3.3
+
+# pandas.read_excel needs openpyxl as its .xlsx engine; build.py never
+# imports it directly, but it's not optional -- reading the source exports
+# fails without it.
+openpyxl==3.1.5
