@@ -58,3 +58,4 @@ Requires `pandas` and `openpyxl`.
   appear twice after a release and re-arrest.
 - The DDP "detention stays" dataset (no arrest join) has ~7,800 matching stays;
   this joined dataset has ~7,400 because it requires a matched arrest record.
+
